@@ -5,30 +5,7 @@
 #include "VAO.h"
 #include "VBO.h"
 #include "EBO.h"
-
-// minimal shaders inline for now
-const char* vertSrc = R"(
-    #version 330 core
-    layout (location = 0) in ivec3 position;
-    void main() {
-        gl_Position = vec4(vec3(position), 1.0);
-    }
-)";
-
-const char* fragSrc = R"(
-    #version 330 core
-    out vec4 fragColor;
-    void main() {
-        fragColor = vec4(1.0, 0.5, 0.2, 1.0);
-    }
-)";
-
-int compileShader(const char* src, GLenum type) {
-    int shader = glCreateShader(type);
-    glShaderSource(shader, 1, &src, nullptr);
-    glCompileShader(shader);
-    return shader;
-}
+#include "Shader.h"
 
 int main() {
     // init glfw
@@ -38,22 +15,23 @@ int main() {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     GLFWwindow* window = glfwCreateWindow(800, 600, "Voxel", nullptr, nullptr);
+    if (!window) {
+        std::cerr << "Failed to create window\n";
+        glfwTerminate();
+        return -1;
+    }
     glfwMakeContextCurrent(window);
 
-    // init glad — must happen after context creation
-    gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
+    // init glad
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+        std::cerr << "Failed to init GLAD\n";
+        return -1;
+    }
 
-    // compile and link shaders
-    int vert = compileShader(vertSrc, GL_VERTEX_SHADER);
-    int frag = compileShader(fragSrc, GL_FRAGMENT_SHADER);
-    int shader = glCreateProgram();
-    glAttachShader(shader, vert);
-    glAttachShader(shader, frag);
-    glLinkProgram(shader);
-    glDeleteShader(vert);
-    glDeleteShader(frag);
+    // shaders
+    Shader shader("shaders/chunk.vert", "shaders/chunk.frag");
 
-    // geometry — a simple triangle for now
+    // geometry
     std::vector<unsigned int> vertices = {
         0, 0, 0,
         1, 0, 0,
@@ -64,7 +42,7 @@ int main() {
         0, 1, 2
     };
 
-    // upload
+    // upload to gpu
     VAO vao;
     VBO vbo;
     EBO ebo;
@@ -80,7 +58,7 @@ int main() {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        glUseProgram(shader);
+        shader.use();
         vao.bind();
         glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
         vao.unbind();
@@ -89,7 +67,6 @@ int main() {
         glfwPollEvents();
     }
 
-    glDeleteProgram(shader);
     glfwTerminate();
     return 0;
 }

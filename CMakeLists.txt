@@ -8,6 +8,7 @@ find_package(glfw3 REQUIRED)
 
 add_executable(${PROJECT_NAME}
     src/main.cpp
+    src/Shader.cpp
     external/glad/glad.c
 )
 
@@ -20,3 +21,10 @@ target_link_libraries(${PROJECT_NAME}
     OpenGL::GL
     glfw
 )
+
+add_custom_target(copy_shaders ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_SOURCE_DIR}/shaders
+    ${CMAKE_BINARY_DIR}/shaders
+)
+add_dependencies(${PROJECT_NAME} copy_shaders)
